@@ -57,9 +57,18 @@ def create_window(exit_program=None):
     exit_button.pack()
 
     # 设置快捷键
-    window.bind("<Control-s>", lambda event: listener.start())
-    window.bind("<Control-q>", lambda event: listener.stop())
-    window.bind("<Control-e>", lambda event: exit_program())  # 绑定Ctrl+E作为退出快捷键
+    def start_recording_on_ctrl_s(event):
+        listener.start()
+
+    def stop_recording_on_ctrl_q(event):
+        listener.stop()
+
+    def exit_program_on_ctrl_e(event):
+        exit_program()
+
+    window.bind("<Control-s>", start_recording_on_ctrl_s)
+    window.bind("<Control-q>", stop_recording_on_ctrl_q)
+    window.bind("<Control-e>", exit_program_on_ctrl_e)
 
     text_widget = tk.Text(window, height=10, width=50)
     text_widget.pack()
@@ -70,20 +79,16 @@ def create_window(exit_program=None):
         for coord in coordinates:
             text_widget.insert(tk.END, f"({coord}, {coord[1]})\n")
         window.after(1000, update_text_widget)
+
     # 关闭程序的函数
     def exit_program():
         global save_on_exit
         save_on_exit = True  # 设置标志，表示在退出时要保存坐标
+        with open('mouse_coordinates.txt', 'w') as file:  # 在退出前保存坐标
+            for coord in coordinates:
+                file.write(f"({coord}, {coord[1]})\n")
         window.quit()  # 调用quit方法来触发窗口关闭
-        if save_on_exit:
-            with open('mouse_coordinates.txt', 'w') as file:
-                for coord in coordinates:
-                    file.write(f"({coord}, {coord[1]})\n")
 
-    # 注册窗口关闭事件
-    window.protocol("WM_DELETE_WINDOW", exit_program)
-
-    return window, text_widget
     # 注册窗口关闭事件
     window.protocol("WM_DELETE_WINDOW", exit_program)
 
@@ -94,16 +99,29 @@ def create_window(exit_program=None):
 
 # 主函数
 def main():
-    global listener, window, text_widget
+    global listener
     listener = MouseListener()
     window, text_widget = create_window()
-    window.mainloop()
 
-    # 检查是否需要在退出时保存坐标
-    if save_on_exit:
-        with open('mouse_coordinates.txt', 'w') as file:
-            for coord in coordinates:
-                file.write(f"({coord}, {coord[1]})\n")
+    # 定义快捷键处理函数
+    def start_recording(event):
+        listener.start()
+        print("CTRL+S triggered")
+
+    def stop_recording(event):
+        listener.stop()
+        print("CTRL+Q triggered")
+
+    def exit_program(event):
+        exit_program()  # 调用之前定义的 exit_program 函数
+        print("CTRL+E triggered")
+
+    # 在窗口创建后绑定快捷键
+    window.bind("<Control-s>", start_recording)
+    window.bind("<Control-q>", stop_recording)
+    window.bind("<Control-e>", exit_program)
+
+    window.mainloop()
 
 if __name__ == "__main__":
     main()
